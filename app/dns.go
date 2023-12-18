@@ -8,7 +8,7 @@ type DNS struct {
 func (dns *DNS) ToBytes() []byte {
 	var response []byte
 	header := dns.header.ToBytes()
-	question := dns.header.ToBytes()
+	question := dns.question.ToBytes()
 	response = append(header, question...)
 	return response
 }

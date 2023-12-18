@@ -46,7 +46,7 @@ func main() {
 		question := &Question{
 			Name:  "codecrafters.io",
 			Type:  TypeNameToValue("A"),
-			Class: TypeNameToValue("IN"),
+			Class: ClassNameToValue("IN"),
 		}
 
 		dns := &DNS{
