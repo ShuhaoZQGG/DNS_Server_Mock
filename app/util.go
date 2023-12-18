@@ -17,6 +17,34 @@ func ParseDomain(domain string) []byte {
 	return response
 }
 
+func ParseDomainName(data []byte) (string, int) {
+	var nameParts []string
+	offset := 0
+
+	for {
+		if offset >= len(data) {
+			return "", offset
+		}
+
+		length := int(data[offset])
+		if length == 0 {
+			break
+		}
+		offset++
+
+		if offset+length > len(data) {
+			return "", offset
+		}
+
+		// Append the current part of the domain name
+		nameParts = append(nameParts, string(data[offset:offset+length]))
+		offset += length
+	}
+
+	// Join the parts of the domain name with "." to form the full domain name
+	return strings.Join(nameParts, "."), offset + 1
+}
+
 func ParseIP(ip string) []byte {
 	var response []byte
 	elements := strings.Split(ip, ".")

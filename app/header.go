@@ -5,7 +5,7 @@ import (
 	"fmt"
 )
 
-// DNS message header struct, for more information: https://www.oreilly.com/library/view/hands-on-network-programming/9781789349863/812dd5c5-0d22-4ccd-8faf-f339b416bb2e.xhtml
+// DNSReply message header struct, for more information: https://www.oreilly.com/library/view/hands-on-network-programming/9781789349863/812dd5c5-0d22-4ccd-8faf-f339b416bb2e.xhtml
 
 type Header struct {
 	ID      uint16 // Packet Identifier 16 bits
@@ -63,16 +63,16 @@ func NewHeader(receivedHeader *Header) *Header {
 		OPCODE:  receivedHeader.OPCODE,
 		RD:      receivedHeader.RD,
 		RCODE:   RCODE,
-		QDCOUNT: 1,
-		ANCOUNT: 1,
+		QDCOUNT: receivedHeader.QDCOUNT,
+		ANCOUNT: receivedHeader.QDCOUNT,
 	}
 	return header
 }
 
-// parseHeader parses the DNS packet header.
-func ParseHeader(data []byte) (*Header, error) {
+// parseHeader parses the DNSReply packet header.
+func ParseHeader(data []byte) (*Header, int, error) {
 	if len(data) < 12 {
-		return nil, fmt.Errorf("invalid header size: expected at least 12 bytes, got %d", len(data))
+		return nil, len(data), fmt.Errorf("invalid header size: expected at least 12 bytes, got %d", len(data))
 	}
 
 	h := &Header{
@@ -93,5 +93,5 @@ func ParseHeader(data []byte) (*Header, error) {
 	h.Z = byte((flags >> 4) & 0x7)
 	h.RCODE = byte(flags & 0xF)
 
-	return h, nil
+	return h, 12, nil
 }

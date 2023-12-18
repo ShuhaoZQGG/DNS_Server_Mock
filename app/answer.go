@@ -1,6 +1,8 @@
 package main
 
-import "encoding/binary"
+import (
+	"encoding/binary"
+)
 
 type Answer struct {
 	Name   string
@@ -8,32 +10,40 @@ type Answer struct {
 	Class  uint16
 	TTL    uint32
 	Length uint16
-	Data   string
+	Data   []byte
+}
+
+func NewAnswer(name string, rtype uint16, class uint16, ttl uint32, length uint16, data []byte) *Answer {
+	return &Answer{
+		Name:   name,
+		Type:   rtype,
+		Class:  class,
+		TTL:    ttl,
+		Length: length,
+		Data:   data,
+	}
 }
 
 func (a *Answer) ToBytes() []byte {
 	var answer []byte
-	var nameBytes []byte = ParseDomain(a.Name)
+	nameBytes := ParseDomain(a.Name)
 	answer = append(answer, nameBytes...)
-
-	typeBytes := make([]byte, 2)
-	binary.BigEndian.PutUint16(typeBytes, a.Type)
-	answer = append(answer, typeBytes...)
-
-	classBytes := make([]byte, 2)
-	binary.BigEndian.PutUint16(classBytes, a.Class)
-	answer = append(answer, classBytes...)
-
-	ttlBytes := make([]byte, 4)
-	binary.BigEndian.PutUint32(ttlBytes, a.TTL)
-	answer = append(answer, ttlBytes...)
-
-	lengthBytes := make([]byte, 2)
-	binary.BigEndian.PutUint16(lengthBytes, a.Length)
-	answer = append(answer, lengthBytes...)
-
-	var dataBytes []byte = ParseIP(a.Data)
-	answer = append(answer, dataBytes...)
-
+	answer = append(answer, uint16ToBytes(a.Type)...)
+	answer = append(answer, uint16ToBytes(a.Class)...)
+	answer = append(answer, uint32ToBytes(a.TTL)...)
+	answer = append(answer, uint16ToBytes(a.Length)...)
+	answer = append(answer, a.Data...)
 	return answer
+}
+
+func uint16ToBytes(value uint16) []byte {
+	bytes := make([]byte, 2)
+	binary.BigEndian.PutUint16(bytes, value)
+	return bytes
+}
+
+func uint32ToBytes(value uint32) []byte {
+	bytes := make([]byte, 4)
+	binary.BigEndian.PutUint32(bytes, value)
+	return bytes
 }

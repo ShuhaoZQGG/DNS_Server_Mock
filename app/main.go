@@ -2,22 +2,20 @@ package main
 
 import (
 	"fmt"
-	// Uncomment this block to pass the first stage
 	"net"
 )
 
 func main() {
-	// You can use print statements as follows for debugging, they'll be visible when running tests.
-	fmt.Println("Logs from your program will appear here!")
+	fmt.Println("Starting DNS server...")
 
-	// Uncomment this block to pass the first stage
-
+	// Resolve the address to listen on
 	udpAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1:2053")
 	if err != nil {
 		fmt.Println("Failed to resolve UDP address:", err)
 		return
 	}
 
+	// Listen on the resolved UDP address
 	udpConn, err := net.ListenUDP("udp", udpAddr)
 	if err != nil {
 		fmt.Println("Failed to bind to address:", err)
@@ -25,49 +23,37 @@ func main() {
 	}
 	defer udpConn.Close()
 
+	fmt.Println("DNS server is listening...")
+
 	for {
+		// Read a packet from the DNS server
 		packet, source, err := readFromDnsServer(udpConn)
 		if err != nil {
 			fmt.Printf("Error reading DNS packet: %s\n", err)
-			break
+			continue
 		}
 
-		receivedHeader, err := ParseHeader(packet)
-
+		// Parse the received DNS packet
+		dnsPacket, err := ParseDNSPacket(packet)
 		if err != nil {
-			fmt.Printf("Error parsing header: %s\n", err)
-			break
+			fmt.Printf("Error parsing DNS packet: %s\n", err)
+			continue
 		}
 
-		header := NewHeader(receivedHeader)
-
-		question := &Question{
-			Name:  "codecrafters.io",
-			Type:  TypeNameToValue("A"),
-			Class: ClassNameToValue("IN"),
+		// Process the DNS request and prepare the response
+		dnsReply := processDnsRequest(dnsPacket)
+		if dnsReply == nil {
+			fmt.Println("Failed to process DNS request")
+			continue
 		}
 
-		answer := &Answer{
-			Name:   "codecrafters.io",
-			Type:   TypeNameToValue("A"),
-			Class:  ClassNameToValue("IN"),
-			TTL:    60,
-			Length: 4,
-			Data:   "8.8.8.8",
-		}
+		// Convert the DNS response to bytes
+		dnsBytes := dnsReply.ToBytes()
 
-		dns := &DNS{
-			Header:   header,
-			Question: question,
-			Answer:   answer,
-		}
-
-		dnsBytes := dns.ToBytes()
-
+		// Send the response back to the source
 		_, err = udpConn.WriteToUDP(dnsBytes, source)
-
 		if err != nil {
-			fmt.Println("Failed to send response:", err)
+			fmt.Println("Failed to send DNS response:", err)
 		}
 	}
 }
