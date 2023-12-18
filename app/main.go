@@ -41,6 +41,7 @@ func main() {
 			ID:      1234,
 			QR:      true,
 			QDCOUNT: 1,
+			ANCOUNT: 1,
 		}
 
 		question := &Question{
@@ -49,9 +50,19 @@ func main() {
 			Class: ClassNameToValue("IN"),
 		}
 
+		answer := &Answer{
+			Name:   "codecrafters.io",
+			Type:   TypeNameToValue("A"),
+			Class:  ClassNameToValue("IN"),
+			TTL:    60,
+			Length: 4,
+			Data:   "8.8.8.8",
+		}
+
 		dns := &DNS{
-			header:   header,
-			question: question,
+			Header:   header,
+			Question: question,
+			Answer:   answer,
 		}
 
 		dnsBytes := dns.ToBytes()
