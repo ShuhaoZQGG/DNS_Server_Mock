@@ -38,13 +38,25 @@ func main() {
 		fmt.Printf("Received %d bytes from %s: %s\n", size, source, receivedData)
 
 		header := &Header{
-			ID: 1234,
-			QR: true,
+			ID:      1234,
+			QR:      true,
+			QDCOUNT: 1,
 		}
 
-		headerBytes := header.ToBytes()
+		question := &Question{
+			Name:  "codecrafters.io",
+			Type:  TypeNameToValue("A"),
+			Class: TypeNameToValue("IN"),
+		}
 
-		_, err = udpConn.WriteToUDP(headerBytes, source)
+		dns := &DNS{
+			header:   header,
+			question: question,
+		}
+
+		dnsBytes := dns.ToBytes()
+
+		_, err = udpConn.WriteToUDP(dnsBytes, source)
 
 		if err != nil {
 			fmt.Println("Failed to send response:", err)
