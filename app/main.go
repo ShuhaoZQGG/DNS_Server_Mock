@@ -25,24 +25,21 @@ func main() {
 	}
 	defer udpConn.Close()
 
-	buf := make([]byte, 512)
-
 	for {
-		size, source, err := udpConn.ReadFromUDP(buf)
+		packet, source, err := readFromDnsServer(udpConn)
 		if err != nil {
-			fmt.Println("Error receiving data:", err)
+			fmt.Printf("Error reading DNS packet: %s\n", err)
 			break
 		}
 
-		receivedData := string(buf[:size])
-		fmt.Printf("Received %d bytes from %s: %s\n", size, source, receivedData)
+		receivedHeader, err := ParseHeader(packet)
 
-		header := &Header{
-			ID:      1234,
-			QR:      true,
-			QDCOUNT: 1,
-			ANCOUNT: 1,
+		if err != nil {
+			fmt.Printf("Error parsing header: %s\n", err)
+			break
 		}
+
+		header := NewHeader(receivedHeader)
 
 		question := &Question{
 			Name:  "codecrafters.io",

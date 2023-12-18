@@ -1,6 +1,9 @@
 package main
 
-import "encoding/binary"
+import (
+	"encoding/binary"
+	"fmt"
+)
 
 // DNS message header struct, for more information: https://www.oreilly.com/library/view/hands-on-network-programming/9781789349863/812dd5c5-0d22-4ccd-8faf-f339b416bb2e.xhtml
 
@@ -45,4 +48,50 @@ func BoolToByte(b bool) byte {
 		return 1
 	}
 	return 0
+}
+
+func NewHeader(receivedHeader *Header) *Header {
+	var RCODE byte
+	if receivedHeader.OPCODE == 0 {
+		RCODE = 0
+	} else {
+		RCODE = 4
+	}
+	header := &Header{
+		ID:      receivedHeader.ID,
+		QR:      true,
+		OPCODE:  receivedHeader.OPCODE,
+		RD:      receivedHeader.RD,
+		RCODE:   RCODE,
+		QDCOUNT: 1,
+		ANCOUNT: 1,
+	}
+	return header
+}
+
+// parseHeader parses the DNS packet header.
+func ParseHeader(data []byte) (*Header, error) {
+	if len(data) < 12 {
+		return nil, fmt.Errorf("invalid header size: expected at least 12 bytes, got %d", len(data))
+	}
+
+	h := &Header{
+		ID:      binary.BigEndian.Uint16(data[:2]),
+		QDCOUNT: binary.BigEndian.Uint16(data[4:6]),
+		ANCOUNT: binary.BigEndian.Uint16(data[6:8]),
+		NSCOUNT: binary.BigEndian.Uint16(data[8:10]),
+		ARCOUNT: binary.BigEndian.Uint16(data[10:12]),
+	}
+
+	flags := binary.BigEndian.Uint16(data[2:4])
+	h.QR = flags>>15 == 1
+	h.OPCODE = byte((flags >> 11) & 0xF)
+	h.AA = flags>>10&1 == 1
+	h.TC = flags>>9&1 == 1
+	h.RD = flags>>8&1 == 1
+	h.RA = flags>>7&1 == 1
+	h.Z = byte((flags >> 4) & 0x7)
+	h.RCODE = byte(flags & 0xF)
+
+	return h, nil
 }
