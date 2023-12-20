@@ -1,10 +1,13 @@
 package main
 
 import (
+	"encoding/binary"
 	"fmt"
 	"strconv"
 	"strings"
 )
+
+var domainCompressionMap = make(map[string]int)
 
 func ParseDomain(domain string) []byte {
 	var response []byte
@@ -17,32 +20,43 @@ func ParseDomain(domain string) []byte {
 	return response
 }
 
-func ParseDomainName(data []byte) (string, int) {
+func ParseDomainName(data []byte, initialOffset int) (string, int) {
 	var nameParts []string
-	offset := 0
+	offset := initialOffset
+	endOffset := initialOffset
 
 	for {
 		if offset >= len(data) {
-			return "", offset
+			return "", endOffset
 		}
 
 		length := int(data[offset])
-		if length == 0 {
-			break
+		if isPointer(byte(length)) {
+			// Calculate the pointer offset
+			pointerOffset := int(binary.BigEndian.Uint16(data[offset:offset+2]) & 0x3fff)
+			// Append the domain name part pointed to by the pointer
+			part, _ := ParseDomainName(data, pointerOffset)
+			nameParts = append(nameParts, part)
+			// Move past the pointer in the original data
+			offset += 2
+			endOffset = offset
+			break // Pointers signify the end of the domain name
+		} else {
+			offset++
+			if length == 0 {
+				endOffset = offset
+				break
+			}
+			nameParts = append(nameParts, string(data[offset:offset+length]))
+			offset += length
 		}
-		offset++
-
-		if offset+length > len(data) {
-			return "", offset
-		}
-
-		// Append the current part of the domain name
-		nameParts = append(nameParts, string(data[offset:offset+length]))
-		offset += length
 	}
 
-	// Join the parts of the domain name with "." to form the full domain name
-	return strings.Join(nameParts, "."), offset + 1
+	return strings.Join(nameParts, "."), endOffset
+}
+
+func isPointer(b byte) bool {
+	return b>>6 == 0x3
 }
 
 func ParseIP(ip string) []byte {

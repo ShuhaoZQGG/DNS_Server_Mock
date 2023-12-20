@@ -22,10 +22,14 @@ func processDnsRequest(request *DNSPacket) *DNSPacket {
 	// For simplicity, let's assume we're responding with a static record
 
 	// Create the response components
-	header := NewHeader(request.Header)                                 // Modify as needed
-	question := request.Question                                        // Usually echoed back in the response
-	answer := NewAnswer(question.Name, 1, 1, 60, 4, []byte{8, 8, 8, 8}) // Example static response
+	header := NewHeader(request.Header) // Modify as needed
+	questions := request.Questions
+	var answers []*Answer // Usually echoed back in the response
+	for _, v := range questions {
+		answer := NewAnswer(v.Name, 1, 1, 60, 4, []byte{8, 8, 8, 8})
+		answers = append(answers, answer)
+	}
 
 	// Create the DNS response packet
-	return NewDNSPacket(header, question, answer)
+	return NewDNSPacket(header, request.Questions, answers)
 }
