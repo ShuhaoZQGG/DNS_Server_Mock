@@ -2,6 +2,7 @@ package main
 
 import (
 	"net"
+	"time"
 )
 
 func readFromDnsServer(conn *net.UDPConn) ([]byte, *net.UDPAddr, error) {
@@ -15,21 +16,32 @@ func readFromDnsServer(conn *net.UDPConn) ([]byte, *net.UDPAddr, error) {
 	return receivedData, source, err
 }
 
-// processDnsRequest processes a DNS request and returns a DNS response packet.
-func processDnsRequest(request *DNSPacket) *DNSPacket {
-	// Process the request to create a response
-	// This may involve looking up records, handling different types of queries, etc.
-	// For simplicity, let's assume we're responding with a static record
+func sendToResoler(packet *DNSPacket, connAddr string) (*DNSPacket, error) {
+	conn, err := net.Dial("udp", connAddr)
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+	timeoutDuration := 5 * time.Second
+	conn.SetDeadline(time.Now().Add(timeoutDuration))
 
-	// Create the response components
-	header := NewHeader(request.Header) // Modify as needed
-	questions := request.Questions
-	var answers []*Answer // Usually echoed back in the response
-	for _, v := range questions {
-		answer := NewAnswer(v.Name, 1, 1, 60, 4, []byte{8, 8, 8, 8})
-		answers = append(answers, answer)
+	bytes := packet.ToBytes()
+	_, err = conn.Write(bytes)
+	if err != nil {
+		return nil, err
 	}
 
-	// Create the DNS response packet
-	return NewDNSPacket(header, request.Questions, answers)
+	buffer := make([]byte, 1024)
+
+	n, err := conn.Read(buffer)
+	if err != nil {
+		return nil, err
+	}
+
+	responsePacket, err := ParseDNSPacket(buffer[:n])
+	if err != nil {
+		return nil, err
+	}
+
+	return responsePacket, nil
 }

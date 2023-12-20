@@ -48,3 +48,11 @@ func ParseQuestion(data []byte, initialOffset int) (*Question, int, error) {
 
 	return question, offset + 4, nil
 }
+
+func flattenQuestions(questions []*Question) []byte {
+	var bytes []byte
+	for _, q := range questions {
+		bytes = append(bytes, q.ToBytes()...)
+	}
+	return bytes
+}
